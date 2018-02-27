@@ -2,7 +2,7 @@ libs <- c("foreign", "plyr" , "arm", "dplyr", "ggplot2", "car", "boot")
 sapply(libs, require, character.only = T)
 
 ######### Diagnostics ##############
-correct.predictions <- function(out, oos_ids, threshold, results){
+correct.predictions <- function(out, select_training, threshold, results){
   
   ##PREDICTING IN SAMPLE
   cat('In Sample Predictions \n')
@@ -22,7 +22,7 @@ correct.predictions <- function(out, oos_ids, threshold, results){
   
   ##PREDICTING OUT OF SAMPLE
   cat('Out of Sample Predictions \n')
-  keepers <- subset(dta, train_id %in% oos_ids)
+  keepers <- dta[-select_training,]
   pv1 <-predict(out,keepers)
   actual_female <- keepers$is_female
   pred_female <- ifelse(pv1 >= threshold,1,0)
@@ -52,26 +52,27 @@ train_dta <- read.csv("./Data/train.csv")
 # DG4 education cor = -.09995
 # DG6 relation to hh head (if answer is myself (1), much more likely to be male) cor = -.0149
 # DL0 main income earner cor = 0.62568
-# MT1 who decides who should have a phone -.0409
+# MT1A who decides who should have a phone -.0409
 # FF1 personally have bank account in your name cor .083
 # FF2 you make transactions or someone else (lots of missingness but for complete obs, cor = .13)
 # GN1 who decides how money you earn will be used cor .05
 
-dta <- train_dta %>% select(train_id, is_female, DG3, DG3A, DG4, DG6, DL0, MT1, FF1, FF2, GN1)
+dta <- train_dta %>% select(train_id, is_female, DG3, DG3A, DG4, DG6, DL0, MT1A, FF1, FF2, GN1)
 for (col in colnames(dta)[3:length(colnames(dta))]) {
   dta[,col] <- as.factor(ifelse(dta[,col] >= 96, NA, dta[,col]))
 }
-oos_ids <- c(1:1000) # exclude these obs from our model so we can test out of sample predicting
 
-model <- glm(is_female ~ DG3 + DG3A + DG4 + DG6 + DL0 + MT1 + FF1 + FF2 + GN1, family=binomial(link='probit'), data = subset(dta, !(train_id %in% exclude_ids)))
-#model <- probit(is_female ~ DG3 + DG3A + DG4 + DG6 + DL0 + MT1 + FF1,data = subset(dta, !(train_id %in% oos_ids)))
-# FF2 & GN1 have missingness - have to decide how to handle
+set.seed(10) # setting seed so sample can be reproduced
+select_training <- sample.int(n=nrow(dta), size =floor(.1*nrow(dta)), replace=F) # exclude these obs from our model so we can test out of sample predicting
+
+model <- glm(is_female ~ DG3 + DG4 + DG6 + DL0 + MT1A + FF1 + GN1, family=binomial(link='probit'), data = dta[select_training,])
+# giving an error for FF2 about can only use factors with 2 or more levels???
 #summary(model)
 
-oos <- subset(dta, train_id %in% oos_ids)
+oos <- dta[-select_training,]
 oos$predict_prob <- predict(model, oos, type='response')
 
 results <- data.frame()
 for (threshold in c(.4, .41, .42, .43, .44, .45, .46, .47, .48, .49, .5, .55, .6, .65, .7, .75)) {
-  results <- correct.predictions(model, oos_ids, threshold, results)
+  results <- correct.predictions(model, select_training, threshold, results)
 }
