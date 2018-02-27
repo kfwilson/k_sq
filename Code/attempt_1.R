@@ -56,6 +56,8 @@ train_dta <- read.csv("./Data/train.csv")
 # FF1 personally have bank account in your name cor .083
 # FF2 you make transactions or someone else (lots of missingness but for complete obs, cor = .13)
 # GN1 who decides how money you earn will be used cor .05
+# MT6 who bought your phone
+# DL1 in past 12 months how much were you working 
 
 dta <- train_dta %>% select(train_id, is_female, DG3, DG3A, DG4, DG6, DL0, MT1A, FF1, FF2, GN1,DL1,MT6)
 for (col in colnames(dta)[3:length(colnames(dta))]) {
@@ -68,7 +70,7 @@ for (col in colnames(dta)[3:length(colnames(dta))]) {
 set.seed(10) # setting seed so sample can be reproduced
 select_training <- sample.int(n=nrow(dta), size =floor(.1*nrow(dta)), replace=F) # exclude these obs from our model so we can test out of sample predicting
 
-model <- glm(is_female ~ DG3 + DG4 + DG6 + DL0 + MT1A + FF1 + GN1 + FF2 + DL1 + MT6, family=binomial(link='probit'), data = dta[select_training,])
+model <- glm(is_female ~ DG3 + DG4 + DG6 + DL0 + MT1A + FF1 + GN1 + FF2 + DL1 + MT6+MT1A + MT6*MT1A + DL1*DL0, family=binomial(link='probit'), data = dta[select_training,])
 # giving an error for FF2 about can only use factors with 2 or more levels???
 #summary(model)
 
@@ -82,7 +84,7 @@ for (threshold in c(.3, .31, .32, .33, .34, .35, .36, .37, .38, .39, .4, .41, .4
 
 ### TEST DATA #####
 test_dta <- read.csv("./Data/test.csv")
-model <- glm(is_female ~ DG3 + DG4 + DG6 + DL0 + MT1A + FF1 + GN1 + FF2, family=binomial(link='probit'), data = dta)
+model <- glm(is_female ~ DG3 + DG4 + DG6 + DL0 + MT1A + FF1 + GN1 + FF2 + DL1 + MT6+MT1A + MT6*MT1A + DL1*DL0, family=binomial(link='probit'), data = dta)
 vars <- c("train_id", "is_female", "DG3", "DG3A", "DG4", "DG6", "DL0", "MT1A", "FF1", "FF2", "GN1", "DL1", "MT6")
 for (col in vars[3:length(vars)]) {
   test_dta[,col] <- ifelse(test_dta[,col] >= 96, NA, test_dta[,col])
