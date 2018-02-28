@@ -5,7 +5,7 @@ sapply(libs, require, character.only = T)
 correct.predictions <- function(out, select_training, threshold, results){
   
   ##PREDICTING IN SAMPLE
-  cat('In Sample Predictions \n')
+  #cat('In Sample Predictions \n')
   pred_female <- ifelse(predict(out) >= threshold,1,0) # choosing .5 as cutoff - should be evaluated
   actual_female <- out$model[,1]
   
@@ -13,15 +13,15 @@ correct.predictions <- function(out, select_training, threshold, results){
   
   colnames(tt) <- c('M','F')
   rownames(tt) <- c('M','F')
-  print(tt)
+  #print(tt)
   
-  cat('Percent Correctly Predicted \n')
+  #cat('Percent Correctly Predicted \n')
   in_sample <- round(sum(diag(tt))/sum(tt),3)
-  cat(in_sample,'\n \n \n')
+  #cat(in_sample,'\n \n \n')
   
   
   ##PREDICTING OUT OF SAMPLE
-  cat('Out of Sample Predictions \n')
+  #cat('Out of Sample Predictions \n')
   keepers <- dta[-select_training,]
   pv1 <-predict(out,keepers)
   actual_female <- keepers$is_female
@@ -29,11 +29,11 @@ correct.predictions <- function(out, select_training, threshold, results){
   tt <- table(pred_female,actual_female)
   colnames(tt) <- c('M','F')
   rownames(tt) <- c('M','F')
-  print(tt)
+  #print(tt)
   sum(diag(tt))/sum(tt)
-  cat('Percent Correctly Predicted \n')
+  #cat('Percent Correctly Predicted \n')
   out_of_sample <- round(sum(diag(tt))/sum(tt),3)
-  cat(out_of_sample,'\n')
+  #cat(out_of_sample,'\n')
   
   return (rbind(results, data.frame(threshold=threshold, in_sample = in_sample, out_of_sample = out_of_sample)))
 }
@@ -92,7 +92,9 @@ for (col in vars[3:length(vars)]) {
   test_dta[,col] <- ifelse(is.na(test_dta[,col]), names(table(test_dta[,col]))[table(test_dta[,col])==max(table(test_dta[,col]))], test_dta[,col])
   test_dta[,col] <- as.factor(test_dta[,col])
 }
-test_dta$is_female <- ifelse(predict(model, test_dta) >= .31, 1, 0)
+#test_dta$is_female <- ifelse(predict(model, test_dta) >= .31, 1, 0)
 
-write.csv(select(test_dta, "test_id", "is_female"), "./Data/submission_02.26.18.csv", row.names=F)
+test_dta$is_female <- predict(model, test_dta, type='response')
+
+write.csv(select(test_dta, "test_id", "is_female"), "./Data/submission_02.27.18_probabilities.csv", row.names=F)
 
